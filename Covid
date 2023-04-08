@@ -1,0 +1,73 @@
+
+Select *
+From PortfolioProject..CovidDeaths
+Where continent is not null
+Order by 4
+
+Select Location, Date, total_cases, new_cases, total_deaths, population
+From PortfolioProject..CovidDeaths
+Order by 1,2
+
+
+Select Location, Date, total_deaths, total_cases, cast(total_deaths as decimal)/Cast(total_cases as decimal)*100 as DeathPercentage
+From PortfolioProject..CovidDeaths
+Where Location = 'Egypt'
+Order by 1,2 desc
+
+
+Select Location, Date, Population, total_cases, (total_cases/Population)*100 as InfectionPercentage
+From PortfolioProject..CovidDeaths
+Order by 1,2
+
+
+Select Location, Population, Max(cast(total_cases as bigint)) as Total_cases, max((total_cases/Population))*100 as InfectionPercentage
+From PortfolioProject..CovidDeaths
+Group By Location, population
+Order by InfectionPercentage desc
+
+
+Select Location, Population, Max(cast(total_deaths as bigint)) as TotalDeathsCount
+From PortfolioProject..CovidDeaths
+Where continent is not null
+Group By Location, population
+Order by TotalDeathsCount desc
+
+
+Select Location, population, Max(cast (total_deaths as int)), Sum(new_cases) as Total_Cases
+From PortfolioProject..CovidDeaths
+--Where continent is null
+where location in ('Asia', 'Africa', 'North America', 'South America', 'Europe', 'world')
+Group by Location, population
+order by Total_cases asc
+
+Select dea.continent, dea.location, dea.date, dea.population, vac.new_vaccinations, Total_vaccinations,
+Sum(Convert(bigint,vac.new_vaccinations)) over (partition by dea.location Order by dea.location, dea.date) as VacinationProcess
+From PortfolioProject.dbo.CovidDeaths dea
+Join PortfolioProject.dbo.covidvacinations vac
+On dea.location = vac.location
+and dea.date = vac.date
+Where dea.continent is not null
+aND dea.location = 'Egypt'
+Order by 2,3 
+
+
+With PopToVac (continent,location,date,population,new_vaccinations, VacinationProcess, Total_vaccinations)
+as
+(Select dea.continent, dea.location, dea.date, dea.population, vac.new_vaccinations,vac.Total_vaccinations,
+Sum(Convert(bigint,vac.new_vaccinations)) over (partition by dea.location Order by dea.location, dea.date)
+as VacinationProcess
+From PortfolioProject.dbo.CovidDeaths dea
+Join PortfolioProject.dbo.covidvacinations vac
+On dea.location = vac.location
+and dea.date = vac.date
+Where dea.continent is not null
+aND dea.location = 'Egypt'
+)
+Select *,(VacinationProcess/Population)*100 as VacToPop
+From PopToVac
+
+
+
+
+
+
