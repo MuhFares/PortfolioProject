@@ -1,0 +1,157 @@
+
+Select *
+From PortfolioProject..Housing
+
+-- Update SaleDate
+
+Select SaleDate, CONVERT(date, SaleDate)
+From PortfolioProject..Housing
+
+Update ..Housing
+Set SaleDate = cast(SaleDate as smalldatetime)
+
+
+Alter Table housing
+Add SaleDateConverted Date;
+
+Update ..Housing
+Set SaleDateConverted = cast(SaleDate as date)
+
+Select SaleDateConverted
+From PortfolioProject..Housing
+
+
+--Property Address
+
+Select *
+From PortfolioProject..Housing
+Where PropertyAddress is null
+
+
+Select A.ParcelID, A.PropertyAddress, B.ParcelID, B.PropertyAddress, ISNULL(A.PropertyAddress, B.PropertyAddress)
+From PortfolioProject..Housing A
+Join PortfolioProject..Housing  B
+on A.ParcelID = B.ParcelID
+and a.[UniqueID ] <> B.[UniqueID ]
+Where A.PropertyAddress is null
+
+Update A
+Set PropertyAddress = ISNULL(A.PropertyAddress, B.PropertyAddress)
+From PortfolioProject..Housing A
+Join PortfolioProject..Housing  B
+on A.ParcelID = B.ParcelID
+and a.[UniqueID ] <> B.[UniqueID ]
+Where A.PropertyAddress is null
+
+
+--Address
+
+Select PropertyAddress
+From PortfolioProject..Housing
+
+Select  PropertyAddress,
+SUBSTRING(propertyAddress,1, CHARINDEX(',' , PropertyAddress) -1) as Address
+,SUBSTRING(propertyAddress, CHARINDEX(',' , PropertyAddress) +1 , LEN(PropertyAddress)) as Address
+From PortfolioProject..Housing
+
+Alter Table housing
+Add PropetyNumber nvarchar(255);
+
+Update ..Housing
+Set PropetyNumber = SUBSTRING(propertyAddress,1, CHARINDEX(',' , PropertyAddress) -1)
+
+Alter Table housing
+Add PropetyCity nvarchar(255);
+
+Update ..Housing
+Set PropetyCity = SUBSTRING(propertyAddress, CHARINDEX(',' , PropertyAddress) +1 , LEN(PropertyAddress))
+
+Select *
+From PortfolioProject..Housing
+
+
+-------------- OwnerAddress
+
+Select OwnerAddress,
+PARSENAME(Replace(Owneraddress, ',', '.') , 3)
+,PARSENAME(Replace(Owneraddress, ',', '.') , 2)
+,PARSENAME(Replace(Owneraddress, ',', '.') , 1)
+From PortfolioProject..Housing
+
+
+Alter Table housing
+Add OwnerSplitAddress nvarchar(255);
+
+Update ..Housing
+Set OwnerSplitAddress = PARSENAME(Replace(Owneraddress, ',', '.') , 3)
+
+Alter Table housing
+Add OwnerCity nvarchar(255);
+
+Update ..Housing
+Set OwnerCity = PARSENAME(Replace(Owneraddress, ',', '.') , 2)
+
+Alter Table housing
+Add OwnerState nvarchar(255);
+
+Update ..Housing
+Set OwnerState = PARSENAME(Replace(Owneraddress, ',', '.') , 1)
+
+Select *
+From ..Housing
+
+--Update Sold_As_Vacant
+
+Select Distinct(SoldAsVacant), Count(SoldasVacant)
+From ..Housing
+Group by SoldAsVacant
+
+Select SoldAsVacant
+,Case
+When SoldASvacant = 'N' Then 'No'
+When SoldasVacant = 'Y' Then 'Yes'
+Else SoldasVacant
+End
+From ..Housing
+
+Update Housing
+SET SoldAsVacant = Case
+When SoldASvacant = 'N' Then 'No'
+When SoldasVacant = 'Y' Then 'Yes'
+Else SoldasVacant
+End
+
+
+--- Delete duplicated rows
+
+Select *,
+ROW_NUMBER() Over (Partition by UniqueID, ParcelID, PropertyAddress, SaleDateConverted
+Order by UniqueID) Row_num 
+
+From portfolioProject.dbo.housing
+
+
+With RowNumCte As
+( 
+Select *,
+ROW_NUMBER() Over (Partition by ParcelID, PropertyAddress, SaleDateConverted
+Order by UniqueID) Row_num 
+
+From portfolioProject.dbo.housing
+)
+
+Select * 
+From RowNumCte
+Where Row_num <> 1
+
+
+-- Delete unused columns
+
+Select *
+From portfolioProject.dbo.housing
+
+Alter Table portfolioProject.dbo.housing
+Drop Column PropertyAddress, SaleDate, OwnerAddress
+
+
+
